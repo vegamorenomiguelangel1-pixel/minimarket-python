@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block titulo %}Reportes - Minimarket{% endblock %}
+{% block encabezado %}Reportes{% endblock %}
+
+{% block contenido %}
+<section class="panel">
+    <h2>Ventas del día</h2>
+    {% if ventas_hoy %}
+    <table>
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Fecha</th>
+                <th>Cant.</th>
+                <th>Total Bs</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in ventas_hoy %}
+            <tr>
+                <td>{{ v.id }}</td>
+                <td>{{ v.fecha }}</td>
+                <td>{{ v.cantidad }}</td>
+                <td>{{ "%.2f"|format(v.total|float) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Hoy todavía no hay ventas.</p>
+    {% endif %}
+    <p><strong>Cantidad de ventas:</strong> {{ n_ventas_hoy }}</p>
+    <p class="total">TOTAL RECAUDADO: Bs {{ "%.2f"|format(total_hoy) }}</p>
+</section>
+
+<section class="panel">
+    <h2>Productos más vendidos</h2>
+    {% if mas_vendidos %}
+    <table>
+        <thead>
+            <tr>
+                <th>N°</th>
+                <th>Producto</th>
+                <th>Unidades</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for par in mas_vendidos %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ par[1] }}</td>
+                <td>{{ par[0] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Todavía no hay ventas.</p>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <h2>Productos con stock bajo</h2>
+    {% if stock_bajo %}
+    <table>
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Stock</th>
+                <th>Mínimo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in stock_bajo %}
+            <tr class="alerta">
+                <td>{{ p.codigo }}</td>
+                <td>{{ p.nombre }}</td>
+                <td>{{ p.stock }}</td>
+                <td>{{ p.stock_minimo }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="flash flash-exito">Todos los productos tienen stock suficiente.</p>
+    {% endif %}
+</section>
+{% endblock %}

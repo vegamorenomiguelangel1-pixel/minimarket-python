@@ -1,0 +1,11 @@
+id,codigo,nombre,categoria,precio,stock,stock_minimo
+1,P001,Pan francés,Panadería,0.50,45,20
+2,P002,Leche PIL 1L,Lácteos,8.50,3,5
+3,P003,Arroz TAQUIÑA 1kg,Abarrotes,9.00,25,8
+4,P004,Azúcar Guabirá 1kg,Abarrotes,7.50,18,6
+5,P005,Aceite Fino 900ml,Abarrotes,15.00,12,4
+6,P006,Coca Cola 2L,Bebidas,12.00,8,6
+7,P007,Galletas Ducales,Snacks,6.50,2,8
+8,P008,Huevos criollos x12,Frescos,18.00,10,4
+9,P009,Fideo Molitalia 400g,Abarrotes,4.50,30,10
+10,P010,Papel higiénico Elite,Limpieza,8.00,1,5

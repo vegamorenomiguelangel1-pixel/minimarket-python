@@ -1,0 +1,193 @@
+/* Estilos simples del Minimarket (sin librerías externas) */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f1ea;
+    color: #243024;
+}
+
+.barra {
+    background: #1f6b3a;
+    color: #fff;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+}
+
+.marca {
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+nav a {
+    color: #fff;
+    text-decoration: none;
+    margin-left: 16px;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+.contenedor {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1, h2 {
+    margin-top: 0;
+}
+
+.panel {
+    background: #fff;
+    border: 1px solid #d7d0c4;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.tarjetas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.tarjeta {
+    background: #fff;
+    border: 1px solid #d7d0c4;
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 160px;
+    flex: 1;
+    text-align: center;
+}
+
+.numero {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 0 0 6px;
+    color: #1f6b3a;
+}
+
+.formulario, .buscar {
+    display: grid;
+    gap: 10px;
+}
+
+.formulario label, .buscar label {
+    display: grid;
+    gap: 4px;
+    font-size: 14px;
+}
+
+input, select, button {
+    font: inherit;
+    padding: 8px;
+}
+
+button, .boton-secundario {
+    display: inline-block;
+    background: #1f6b3a;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 14px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.boton-secundario {
+    background: #6b7280;
+}
+
+button.peligro {
+    background: #b42318;
+}
+
+.acciones {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    background: #fff;
+}
+
+th, td {
+    border: 1px solid #d7d0c4;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background: #e8f5ec;
+}
+
+tr.alerta {
+    background: #fff4d6;
+}
+
+.celda-acciones a {
+    margin-right: 8px;
+}
+
+.flash {
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.flash-exito {
+    background: #d8f3dc;
+}
+
+.flash-error {
+    background: #f8d7da;
+}
+
+.flash-aviso {
+    background: #fff3cd;
+}
+
+.factura pre {
+    background: #243024;
+    color: #f4f1ea;
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+}
+
+.dos-columnas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.total {
+    font-weight: bold;
+    color: #1f6b3a;
+}
+
+@media (max-width: 700px) {
+    .dos-columnas {
+        grid-template-columns: 1fr;
+    }
+
+    nav a {
+        margin-left: 10px;
+    }
+}

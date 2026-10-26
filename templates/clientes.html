@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block titulo %}Clientes - Minimarket{% endblock %}
+{% block encabezado %}Clientes{% endblock %}
+
+{% block contenido %}
+<section class="panel">
+    <h2>{% if cliente_editar %}Editar cliente{% else %}Registrar cliente{% endif %}</h2>
+    <form method="post" action="{{ url_for('clientes') }}" class="formulario">
+        {% if cliente_editar %}
+        <input type="hidden" name="id" value="{{ cliente_editar.id }}">
+        {% endif %}
+        <label>CI/NIT
+            <input name="ci_nit" required
+                   value="{{ cliente_editar.ci_nit if cliente_editar else '' }}">
+        </label>
+        <label>Nombre
+            <input name="nombre" required
+                   value="{{ cliente_editar.nombre if cliente_editar else '' }}">
+        </label>
+        <label>Teléfono
+            <input name="telefono" required
+                   value="{{ cliente_editar.telefono if cliente_editar else '' }}">
+        </label>
+        <div class="acciones">
+            <button type="submit">
+                {% if cliente_editar %}Guardar cambios{% else %}Registrar{% endif %}
+            </button>
+            {% if cliente_editar %}
+            <a class="boton-secundario" href="{{ url_for('clientes') }}">Cancelar</a>
+            {% endif %}
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <form method="get" action="{{ url_for('clientes') }}" class="buscar">
+        <label>Buscar
+            <input name="q" value="{{ texto }}" placeholder="Nombre o CI/NIT">
+        </label>
+        <button type="submit">Buscar</button>
+        <a class="boton-secundario" href="{{ url_for('clientes') }}">Ver todos</a>
+    </form>
+
+    {% if clientes %}
+    <table>
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>CI/NIT</th>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in clientes %}
+            <tr>
+                <td>{{ c.id }}</td>
+                <td>{{ c.ci_nit }}</td>
+                <td>{{ c.nombre }}</td>
+                <td>{{ c.telefono }}</td>
+                <td class="celda-acciones">
+                    <a href="{{ url_for('clientes', editar=c.id) }}">Editar</a>
+                    <a href="{{ url_for('eliminar_cliente', id_cliente=c.id) }}">Eliminar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No se encontraron clientes.</p>
+    {% endif %}
+</section>
+{% endblock %}

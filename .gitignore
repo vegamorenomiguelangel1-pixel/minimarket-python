@@ -1,0 +1,14 @@
+# Carpetas de Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
