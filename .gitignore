@@ -4,6 +4,10 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
+# Base SQLite (se crea sola al ejecutar el programa)
+*.db
+*.db-journal
+
 # Entornos virtuales
 venv/
 .venv/

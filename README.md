@@ -3,30 +3,36 @@
 Programa académico de la UNICEN (Bolivia) para administrar un minimarket:
 productos, clientes, ventas con factura y reportes.
 
-Hay **tres versiones** que comparten la misma lógica y los mismos archivos CSV:
+Hay **dos versiones** que comparten la misma lógica y la misma base SQLite:
 
 | Versión | Archivo | ¿Cumple la consigna? |
 |---|---|---|
 | Terminal (menús con `input`/`print`) | `minimarket.py` | **Sí. Esta es la entrega principal.** |
-| Ventana gráfica (tkinter) | `minimarket_gui.py` | Extra |
-| Página web (Flask) | `app_web.py` | Extra |
+| Flet (escritorio y web) | `app_flet.py` | Extra |
 
 La lógica (validaciones, CRUD y ventas) está en `minimarket.py` y **no usa
-`input()` ni `print()`**. Por eso la GUI y la web hacen
-`import minimarket as mm` y reutilizan esas funciones. Si se registra un
-dato en la terminal, aparece en la ventana y en el navegador (y al revés).
+`input()` ni `print()`**. La interfaz Flet hace `import minimarket as mm`
+y llama a esas funciones. Los datos viven en `minimarket.db` (un solo
+archivo SQLite). Si se registra un dato en la terminal, aparece en Flet
+(y al revés).
 
 ## Requisitos
 
 - Python 3 (el que viene con Windows o el de la universidad).
-- Biblioteca estándar: `csv`, `os`, `datetime` y `tkinter` (viene con Python).
-- **Solo la versión web** necesita un paquete extra: Flask.
+- Biblioteca estándar: `sqlite3`, `os` y `datetime`.
+- **Solo Flet** es un paquete extra (para la interfaz gráfica/web).
 
 En Windows se usa el comando `python` (no `python3`).
 
-## Cómo ejecutar cada versión
+## Cómo instalar y ejecutar
 
 Abrir una terminal (cmd o PowerShell) en la carpeta del proyecto.
+
+Instalar Flet una sola vez:
+
+```
+pip install -r requirements.txt
+```
 
 ### 1) Terminal (la que pide el profesor)
 
@@ -36,82 +42,123 @@ python minimarket.py
 
 Aparece un menú: Productos, Clientes, Ventas, Reportes y Salir.
 
-### 2) Ventana gráfica (extra)
+### 2) Flet en escritorio (extra)
 
 ```
-python minimarket_gui.py
+python app_flet.py
 ```
 
-Se abre una ventana con cuatro pestañas. Usa los mismos CSV.
-
-### 3) Versión web (extra)
-
-Instalar Flask una sola vez:
+o también:
 
 ```
-pip install -r requirements.txt
+flet run app_flet.py
 ```
 
-Arrancar el servidor:
+Se abre una ventana con un menú a la izquierda (Inicio, Productos,
+Clientes, Ventas, Reportes).
+
+### 3) Flet en el navegador (extra)
 
 ```
-python app_web.py
+flet run --web app_flet.py
 ```
 
-Abrir el navegador en: [http://127.0.0.1:5000](http://127.0.0.1:5000)
+El mismo programa se abre en el navegador (por ejemplo
+http://127.0.0.1:un-puerto). Para detenerlo: `Ctrl + C` en la terminal.
 
-Para detener el servidor: `Ctrl + C` en la terminal.
+La primera vez que se ejecuta **cualquier** versión, Python crea
+`minimarket.db` y carga datos de ejemplo de un minimarket boliviano
+(precios en Bs). Ese archivo no se sube a Git: se genera solo.
 
 ## Estructura del proyecto
 
 ```
 minimarket-python/
-├── minimarket.py              # Lógica + menús de terminal
-├── minimarket_gui.py          # Extra: ventana tkinter
-├── app_web.py                 # Extra: servidor Flask
-├── productos.csv              # Base de datos de productos
-├── clientes.csv               # Base de datos de clientes
-├── ventas.csv                 # Base de datos de ventas
-├── requirements.txt           # Solo Flask (para la web)
-├── templates/                 # Páginas HTML de la web
-├── static/estilo.css          # Estilos de la web
-├── docs/                      # Guía, informes y video de demo
+├── minimarket.py         # Lógica + menús de terminal
+├── base_datos.py         # SQLite: tablas, semilla y consultas
+├── app_flet.py           # Extra: interfaz Flet (escritorio y web)
+├── requirements.txt      # Solo Flet 1.0.5
+├── docs/                 # Guía, informes y video (ver nota abajo)
 └── README.md
 ```
 
-## Los archivos CSV (la “base de datos”)
+Todo el programa está en archivos `.py`. No hay CSV, ni HTML, ni `.kv`.
 
-Están **en la misma carpeta** que los `.py`, para que las tres versiones
-lean y escriban los mismos datos. **No se ignoran en Git**: el repositorio
-incluye datos de ejemplo de un minimarket boliviano (precios en Bs).
+## La base de datos SQLite
 
-| Archivo | Columnas | Ejemplo |
+Un solo archivo: `minimarket.db` (junto a los `.py`).
+Lo crea `base_datos.py` con `CREATE TABLE IF NOT EXISTS` y, si las
+tablas están vacías, inserta ~10 productos, ~5 clientes y ~8 ventas.
+
+### Tablas
+
+```sql
+CREATE TABLE IF NOT EXISTS productos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    codigo TEXT NOT NULL UNIQUE,
+    nombre TEXT NOT NULL,
+    categoria TEXT NOT NULL,
+    precio REAL NOT NULL CHECK (precio > 0),
+    stock INTEGER NOT NULL CHECK (stock >= 0),
+    stock_minimo INTEGER NOT NULL CHECK (stock_minimo >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS clientes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ci_nit TEXT NOT NULL UNIQUE,
+    nombre TEXT NOT NULL,
+    telefono TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ventas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fecha TEXT NOT NULL,
+    id_cliente INTEGER NOT NULL,
+    id_producto INTEGER NOT NULL,
+    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+    precio_unitario REAL NOT NULL,
+    total REAL NOT NULL,
+    FOREIGN KEY (id_cliente) REFERENCES clientes(id),
+    FOREIGN KEY (id_producto) REFERENCES productos(id)
+);
+```
+
+- **PRIMARY KEY AUTOINCREMENT:** el `id` lo asigna SQLite (1, 2, 3…).
+- **UNIQUE:** no se puede repetir el código de un producto ni el CI/NIT.
+- **CHECK:** el motor rechaza precio ≤ 0 o stock negativo.
+- **FOREIGN KEY:** cada venta apunta a un cliente y a un producto
+  que existen. Se activan con `PRAGMA foreign_keys = ON` en cada
+  conexión (SQLite las apaga por defecto).
+- **Fecha de venta:** texto `AAAA-MM-DD HH:MM` (ejemplo:
+  `2026-10-26 09:15`).
+
+### CRUD mapeado a SQL
+
+| Acción | SQL | Función de lógica |
 |---|---|---|
-| `productos.csv` | id, codigo, nombre, categoria, precio, stock, stock_minimo | `P002`, Leche PIL 1L, 8.50 |
-| `clientes.csv` | id, ci_nit, nombre, telefono | CI `8452167`, María Quispe |
-| `ventas.csv` | id, fecha, id_cliente, id_producto, cantidad, precio_unitario, total | fecha `2026-10-26 09:15` |
+| Crear producto/cliente | `INSERT` | `agregar_producto` / `agregar_cliente` |
+| Listar / buscar | `SELECT` | `obtener_productos` / `obtener_clientes` |
+| Actualizar | `UPDATE` | `modificar_producto` / `modificar_cliente` |
+| Eliminar | `DELETE` | `borrar_producto` / `borrar_cliente` |
+| Registrar venta | `INSERT` + `UPDATE` stock | `realizar_venta` |
 
-La fecha de cada venta se guarda como `AAAA-MM-DD HH:MM`.
-Cada venta guarda el `id` del cliente y del producto (como una llave
-foránea): así se sabe quién compró qué.
+Todas las consultas usan `?` (consultas parametrizadas) para que el
+valor no se mezcle con el comando SQL. Así se evita la **inyección SQL**.
 
-Si se borran los CSV, el programa los vuelve a crear vacíos la primera vez
-que se ejecuta (`inicializar_base_de_datos()`).
-
-## Resumen del CRUD
+## Resumen de las reglas de negocio
 
 **Productos y clientes**
 
-- **Crear:** registrar un producto o un cliente.
-- **Leer:** listar todos o buscar por texto (nombre/código o nombre/CI-NIT).
-- **Actualizar:** cambiar los datos (en terminal, Enter deja el valor actual).
-- **Eliminar:** solo si **no** tiene ventas registradas (pide confirmación).
+- Código de producto y CI/NIT no se repiten.
+- Precio > 0; stock y stock mínimo ≥ 0.
+- No se puede eliminar un producto o cliente que ya tenga ventas.
 
 **Ventas**
 
 - Se elige cliente, producto y cantidad.
 - No se puede vender más de lo que hay en stock.
-- Al vender se descuenta el stock y se muestra una factura.
+- Al vender se descuenta el stock (en la misma transacción) y se
+  muestra una factura.
 - Si el stock queda en el mínimo o por debajo, aparece un aviso.
 
 **Reportes**
@@ -120,15 +167,16 @@ que se ejecuta (`inicializar_base_de_datos()`).
 - Productos más vendidos (unidades).
 - Productos con stock bajo.
 
-Otras reglas: el código de producto no se repite, el CI/NIT no se repite,
-el precio debe ser mayor a 0.
-
 ## Nota para la exposición
 
 La versión de **terminal** (`python minimarket.py`) es la que cumple la
-consigna del profesor: menús en consola, CSV como base de datos, CRUD y
-sin inteligencia artificial.
+consigna: menús en consola, base de datos, CRUD y sin inteligencia
+artificial. Flet es un **extra** para mostrar la misma lógica en
+escritorio y en el navegador.
 
-La GUI y la web son **extras** para mostrar que la lógica se puede
-reutilizar. En la guía de exposición (`docs/Guia_Exposicion.md`) está el
-recorrido del código y las preguntas frecuentes.
+La guía oral actualizada está en `docs/Guia_Exposicion.md`.
+
+Los archivos `docs/*.docx` y `docs/demo_minimarket.mp4` se hicieron
+con una versión anterior que usaba CSV, tkinter y Flask. **Esa parte
+está desactualizada.** Hoy la base es SQLite y la interfaz extra es
+Flet; no hay CSV ni tkinter ni Flask en el código.

@@ -2,74 +2,41 @@
 Sistema de Minimarket (programa de terminal).
 
 Permite administrar productos, clientes y ventas de un minimarket.
-Los datos se guardan en archivos CSV que funcionan como base de datos.
-Solo usa la biblioteca estándar de Python: csv, os y datetime.
+Los datos se guardan en SQLite (minimarket.db) a través de base_datos.py.
 
 Las funciones de "lógica" (secciones 4 y 5) no usan input() ni print(),
-por eso también las reutiliza la versión gráfica (minimarket_gui.py).
+por eso también las reutiliza la versión Flet (app_flet.py).
+Cada función de lógica devuelve (exito, mensaje).
 """
 
-import csv
 import os
 from datetime import datetime
 
+import base_datos as bd
+
 # ============================================================
-# 1) BASE DE DATOS CSV
+# 1) ARRANQUE DE LA BASE DE DATOS
 # ============================================================
-
-# Los CSV se guardan en la misma carpeta que este archivo .py
-CARPETA = os.path.dirname(os.path.abspath(__file__))
-ARCHIVO_PRODUCTOS = os.path.join(CARPETA, "productos.csv")
-ARCHIVO_CLIENTES = os.path.join(CARPETA, "clientes.csv")
-ARCHIVO_VENTAS = os.path.join(CARPETA, "ventas.csv")
-
-CAMPOS_PRODUCTOS = ["id", "codigo", "nombre", "categoria",
-                    "precio", "stock", "stock_minimo"]
-CAMPOS_CLIENTES = ["id", "ci_nit", "nombre", "telefono"]
-CAMPOS_VENTAS = ["id", "fecha", "id_cliente", "id_producto",
-                 "cantidad", "precio_unitario", "total"]
-
-
-def crear_archivo_si_no_existe(nombre_archivo, campos):
-    """Crea el archivo CSV con su encabezado si todavía no existe."""
-    if not os.path.exists(nombre_archivo):
-        with open(nombre_archivo, "w", newline="", encoding="utf-8") as f:
-            escritor = csv.DictWriter(f, fieldnames=campos)
-            escritor.writeheader()
 
 
 def inicializar_base_de_datos():
-    """Crea los tres archivos CSV del sistema."""
-    crear_archivo_si_no_existe(ARCHIVO_PRODUCTOS, CAMPOS_PRODUCTOS)
-    crear_archivo_si_no_existe(ARCHIVO_CLIENTES, CAMPOS_CLIENTES)
-    crear_archivo_si_no_existe(ARCHIVO_VENTAS, CAMPOS_VENTAS)
+    """Crea las tablas y, si el archivo está vacío, los datos de ejemplo."""
+    bd.inicializar()
 
 
-def leer_datos(nombre_archivo):
-    """Lee el CSV y devuelve una lista de diccionarios (una fila = un dict)."""
-    filas = []
-    with open(nombre_archivo, "r", newline="", encoding="utf-8") as f:
-        lector = csv.DictReader(f)
-        for fila in lector:
-            filas.append(fila)
-    return filas
+def obtener_productos():
+    """Lista todos los productos (SELECT)."""
+    return bd.listar_productos()
 
 
-def guardar_datos(nombre_archivo, campos, filas):
-    """Sobrescribe el CSV completo con la lista de filas recibida."""
-    with open(nombre_archivo, "w", newline="", encoding="utf-8") as f:
-        escritor = csv.DictWriter(f, fieldnames=campos)
-        escritor.writeheader()
-        escritor.writerows(filas)
+def obtener_clientes():
+    """Lista todos los clientes (SELECT)."""
+    return bd.listar_clientes()
 
 
-def generar_id(filas):
-    """Devuelve el siguiente id: el mayor id existente + 1."""
-    mayor = 0
-    for fila in filas:
-        if int(fila["id"]) > mayor:
-            mayor = int(fila["id"])
-    return mayor + 1
+def obtener_ventas():
+    """Lista todas las ventas (SELECT)."""
+    return bd.listar_ventas()
 
 
 def buscar_por_id(filas, id_buscado):
@@ -254,36 +221,27 @@ def convertir_precio(texto):
         return None
 
 
-def codigo_repetido(productos, codigo, id_excluido=""):
+def codigo_repetido(codigo, id_excluido=""):
     """Indica si el código ya lo usa otro producto."""
-    for p in productos:
-        if p["codigo"] == codigo and p["id"] != id_excluido:
-            return True
-    return False
+    return bd.existe_codigo(codigo, id_excluido)
 
 
-def ci_repetido(clientes, ci_nit, id_excluido=""):
+def ci_repetido(ci_nit, id_excluido=""):
     """Indica si el CI/NIT ya lo usa otro cliente."""
-    for c in clientes:
-        if c["ci_nit"] == ci_nit and c["id"] != id_excluido:
-            return True
-    return False
+    return bd.existe_ci(ci_nit, id_excluido)
 
 
 def tiene_ventas(campo, id_buscado):
     """Indica si existe alguna venta con ese id en el campo indicado."""
-    for v in leer_datos(ARCHIVO_VENTAS):
-        if v[campo] == str(id_buscado):
-            return True
-    return False
+    return bd.tiene_ventas(campo, id_buscado)
 
 
-def validar_producto(productos, datos, id_excluido=""):
+def validar_producto(datos, id_excluido=""):
     """Revisa las reglas del producto. Devuelve el error o "" si está bien."""
     if datos["codigo"] == "" or datos["nombre"] == "" \
             or datos["categoria"] == "":
         return "Código, nombre y categoría son obligatorios."
-    if codigo_repetido(productos, datos["codigo"], id_excluido):
+    if codigo_repetido(datos["codigo"], id_excluido):
         return "Ya existe un producto con ese código."
     if datos["precio"] <= 0:
         return "El precio debe ser mayor a 0."
@@ -293,90 +251,78 @@ def validar_producto(productos, datos, id_excluido=""):
 
 
 def agregar_producto(datos):
-    """Guarda un producto nuevo. 'datos' es un dict con sus campos."""
-    productos = leer_datos(ARCHIVO_PRODUCTOS)
-    error = validar_producto(productos, datos)
+    """Guarda un producto nuevo (INSERT). 'datos' es un dict con sus campos."""
+    error = validar_producto(datos)
     if error != "":
         return False, error
-    datos["id"] = generar_id(productos)
-    productos.append(datos)
-    guardar_datos(ARCHIVO_PRODUCTOS, CAMPOS_PRODUCTOS, productos)
-    return True, f"Producto registrado con id {datos['id']}."
+    nuevo_id = bd.insertar_producto(datos)
+    datos["id"] = nuevo_id
+    return True, f"Producto registrado con id {nuevo_id}."
 
 
 def modificar_producto(id_producto, datos):
-    """Reemplaza los datos de un producto existente."""
-    productos = leer_datos(ARCHIVO_PRODUCTOS)
-    p = buscar_por_id(productos, id_producto)
+    """Reemplaza los datos de un producto existente (UPDATE)."""
+    p = bd.obtener_producto(id_producto)
     if p is None:
         return False, "Producto no encontrado."
-    error = validar_producto(productos, datos, p["id"])
+    error = validar_producto(datos, p["id"])
     if error != "":
         return False, error
-    p.update(datos)   # copia los nuevos valores dentro del producto
-    guardar_datos(ARCHIVO_PRODUCTOS, CAMPOS_PRODUCTOS, productos)
+    bd.actualizar_producto(id_producto, datos)
     return True, "Producto actualizado."
 
 
 def borrar_producto(id_producto):
-    """Elimina un producto si no tiene ventas registradas."""
-    productos = leer_datos(ARCHIVO_PRODUCTOS)
-    p = buscar_por_id(productos, id_producto)
+    """Elimina un producto si no tiene ventas registradas (DELETE)."""
+    p = bd.obtener_producto(id_producto)
     if p is None:
         return False, "Producto no encontrado."
     if tiene_ventas("id_producto", p["id"]):
         return False, "No se puede eliminar: el producto tiene ventas."
-    productos.remove(p)
-    guardar_datos(ARCHIVO_PRODUCTOS, CAMPOS_PRODUCTOS, productos)
+    bd.eliminar_fila("productos", p["id"])
     return True, "Producto eliminado."
 
 
-def validar_cliente(clientes, datos, id_excluido=""):
+def validar_cliente(datos, id_excluido=""):
     """Revisa las reglas del cliente. Devuelve el error o "" si está bien."""
     if datos["ci_nit"] == "" or datos["nombre"] == "" \
             or datos["telefono"] == "":
         return "CI/NIT, nombre y teléfono son obligatorios."
-    if ci_repetido(clientes, datos["ci_nit"], id_excluido):
+    if ci_repetido(datos["ci_nit"], id_excluido):
         return "Ya existe un cliente con ese CI/NIT."
     return ""
 
 
 def agregar_cliente(datos):
-    """Guarda un cliente nuevo."""
-    clientes = leer_datos(ARCHIVO_CLIENTES)
-    error = validar_cliente(clientes, datos)
+    """Guarda un cliente nuevo (INSERT)."""
+    error = validar_cliente(datos)
     if error != "":
         return False, error
-    datos["id"] = generar_id(clientes)
-    clientes.append(datos)
-    guardar_datos(ARCHIVO_CLIENTES, CAMPOS_CLIENTES, clientes)
-    return True, f"Cliente registrado con id {datos['id']}."
+    nuevo_id = bd.insertar_cliente(datos)
+    datos["id"] = nuevo_id
+    return True, f"Cliente registrado con id {nuevo_id}."
 
 
 def modificar_cliente(id_cliente, datos):
-    """Reemplaza los datos de un cliente existente."""
-    clientes = leer_datos(ARCHIVO_CLIENTES)
-    c = buscar_por_id(clientes, id_cliente)
+    """Reemplaza los datos de un cliente existente (UPDATE)."""
+    c = bd.obtener_cliente(id_cliente)
     if c is None:
         return False, "Cliente no encontrado."
-    error = validar_cliente(clientes, datos, c["id"])
+    error = validar_cliente(datos, c["id"])
     if error != "":
         return False, error
-    c.update(datos)
-    guardar_datos(ARCHIVO_CLIENTES, CAMPOS_CLIENTES, clientes)
+    bd.actualizar_cliente(id_cliente, datos)
     return True, "Cliente actualizado."
 
 
 def borrar_cliente(id_cliente):
-    """Elimina un cliente si no tiene ventas registradas."""
-    clientes = leer_datos(ARCHIVO_CLIENTES)
-    c = buscar_por_id(clientes, id_cliente)
+    """Elimina un cliente si no tiene ventas registradas (DELETE)."""
+    c = bd.obtener_cliente(id_cliente)
     if c is None:
         return False, "Cliente no encontrado."
     if tiene_ventas("id_cliente", c["id"]):
         return False, "No se puede eliminar: el cliente tiene ventas."
-    clientes.remove(c)
-    guardar_datos(ARCHIVO_CLIENTES, CAMPOS_CLIENTES, clientes)
+    bd.eliminar_fila("clientes", c["id"])
     return True, "Cliente eliminado."
 
 
@@ -389,11 +335,9 @@ def realizar_venta(id_cliente, id_producto, cantidad):
 
     Devuelve (exito, mensaje, venta). Si hay error, venta es None.
     """
-    clientes = leer_datos(ARCHIVO_CLIENTES)
-    productos = leer_datos(ARCHIVO_PRODUCTOS)
-    if buscar_por_id(clientes, id_cliente) is None:
+    if bd.obtener_cliente(id_cliente) is None:
         return False, "Cliente no encontrado.", None
-    producto = buscar_por_id(productos, id_producto)
+    producto = bd.obtener_producto(id_producto)
     if producto is None:
         return False, "Producto no encontrado.", None
     stock = int(producto["stock"])
@@ -403,9 +347,7 @@ def realizar_venta(id_cliente, id_producto, cantidad):
     if cantidad > stock:
         return False, f"Stock insuficiente (solo hay {stock}).", None
     precio = float(producto["precio"])
-    ventas = leer_datos(ARCHIVO_VENTAS)
     venta = {
-        "id": generar_id(ventas),
         "fecha": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "id_cliente": str(id_cliente),
         "id_producto": str(id_producto),
@@ -413,11 +355,9 @@ def realizar_venta(id_cliente, id_producto, cantidad):
         "precio_unitario": precio,
         "total": round(precio * cantidad, 2),
     }
-    ventas.append(venta)
-    guardar_datos(ARCHIVO_VENTAS, CAMPOS_VENTAS, ventas)
-    # Regla: al vender se descuenta el stock
-    producto["stock"] = stock - cantidad
-    guardar_datos(ARCHIVO_PRODUCTOS, CAMPOS_PRODUCTOS, productos)
+    nuevo_id = bd.guardar_venta_y_descontar_stock(
+        venta, id_producto, stock - cantidad)
+    venta["id"] = nuevo_id
     return True, "Venta registrada.", venta
 
 
@@ -428,9 +368,8 @@ def stock_bajo(producto):
 
 def lineas_factura(venta):
     """Devuelve la factura de una venta como lista de líneas de texto."""
-    cliente = buscar_por_id(leer_datos(ARCHIVO_CLIENTES), venta["id_cliente"])
-    producto = buscar_por_id(leer_datos(ARCHIVO_PRODUCTOS),
-                             venta["id_producto"])
+    cliente = bd.obtener_cliente(venta["id_cliente"])
+    producto = bd.obtener_producto(venta["id_producto"])
     precio = float(venta["precio_unitario"])
     return [
         "MINIMARKET - FACTURA",
@@ -455,7 +394,7 @@ def ventas_de_hoy():
     """Devuelve la lista de ventas cuya fecha es hoy."""
     hoy = datetime.now().strftime("%Y-%m-%d")
     resultado = []
-    for v in leer_datos(ARCHIVO_VENTAS):
+    for v in obtener_ventas():
         if v["fecha"][:10] == hoy:   # los 10 primeros caracteres = fecha
             resultado.append(v)
     return resultado
@@ -472,16 +411,16 @@ def calcular_total(ventas):
 def calcular_mas_vendidos():
     """Devuelve una lista [unidades, nombre] ordenada de mayor a menor."""
     unidades = {}   # clave: id_producto, valor: unidades vendidas
-    for v in leer_datos(ARCHIVO_VENTAS):
+    for v in obtener_ventas():
         id_producto = v["id_producto"]
         if id_producto not in unidades:
             unidades[id_producto] = 0
         unidades[id_producto] += int(v["cantidad"])
-    productos = leer_datos(ARCHIVO_PRODUCTOS)
     ranking = []
     for id_producto in unidades:
-        nombre = nombre_o_eliminado(buscar_por_id(productos, id_producto))
-        ranking.append([unidades[id_producto], nombre])
+        producto = bd.obtener_producto(id_producto)
+        ranking.append([unidades[id_producto],
+                        nombre_o_eliminado(producto)])
     ranking.sort(reverse=True)
     return ranking
 
@@ -489,7 +428,7 @@ def calcular_mas_vendidos():
 def productos_con_stock_bajo():
     """Devuelve los productos cuyo stock es menor o igual al mínimo."""
     resultado = []
-    for p in leer_datos(ARCHIVO_PRODUCTOS):
+    for p in obtener_productos():
         if stock_bajo(p):
             resultado.append(p)
     return resultado
@@ -512,9 +451,8 @@ def mostrar_tabla_productos(productos):
 
 def crear_producto():
     """Pide los datos de un producto nuevo y lo registra."""
-    productos = leer_datos(ARCHIVO_PRODUCTOS)
     codigo = pedir_texto("Código: ")
-    if codigo_repetido(productos, codigo):
+    if codigo_repetido(codigo):
         mensaje_error("Error: ya existe un producto con ese código.")
         return
     datos = {
@@ -531,7 +469,7 @@ def crear_producto():
 
 def listar_productos():
     """Muestra todos los productos."""
-    productos = leer_datos(ARCHIVO_PRODUCTOS)
+    productos = obtener_productos()
     if len(productos) == 0:
         mensaje_aviso("No hay productos registrados.")
     else:
@@ -542,7 +480,7 @@ def buscar_producto():
     """Busca productos cuyo nombre o código contenga el texto ingresado."""
     texto = pedir_texto("Texto a buscar (nombre o código): ").lower()
     encontrados = []
-    for p in leer_datos(ARCHIVO_PRODUCTOS):
+    for p in obtener_productos():
         if texto in p["nombre"].lower() or texto in p["codigo"].lower():
             encontrados.append(p)
     if len(encontrados) == 0:
@@ -553,15 +491,14 @@ def buscar_producto():
 
 def actualizar_producto():
     """Modifica un producto. Enter deja el valor actual."""
-    p = buscar_por_id(leer_datos(ARCHIVO_PRODUCTOS),
-                      pedir_entero("Id del producto: ", 1))
+    p = bd.obtener_producto(pedir_entero("Id del producto: ", 1))
     if p is None:
         mensaje_error("Producto no encontrado.")
         return
     mostrar_tabla_productos([p])
     print("(Presione Enter para mantener el valor actual)")
     codigo = pedir_opcional("Código", p["codigo"])
-    if codigo_repetido(leer_datos(ARCHIVO_PRODUCTOS), codigo, p["id"]):
+    if codigo_repetido(codigo, p["id"]):
         mensaje_error("Error: ese código ya pertenece a otro producto.")
         return
     datos = {
@@ -582,8 +519,7 @@ def actualizar_producto():
 
 def eliminar_producto():
     """Elimina un producto (pide confirmación)."""
-    p = buscar_por_id(leer_datos(ARCHIVO_PRODUCTOS),
-                      pedir_entero("Id del producto: ", 1))
+    p = bd.obtener_producto(pedir_entero("Id del producto: ", 1))
     if p is None:
         mensaje_error("Producto no encontrado.")
         return
@@ -613,7 +549,7 @@ def mostrar_tabla_clientes(clientes):
 def crear_cliente():
     """Pide los datos de un cliente nuevo y lo registra."""
     ci_nit = pedir_texto("CI/NIT: ")
-    if ci_repetido(leer_datos(ARCHIVO_CLIENTES), ci_nit):
+    if ci_repetido(ci_nit):
         mensaje_error("Error: ya existe un cliente con ese CI/NIT.")
         return
     datos = {
@@ -627,7 +563,7 @@ def crear_cliente():
 
 def listar_clientes():
     """Muestra todos los clientes."""
-    clientes = leer_datos(ARCHIVO_CLIENTES)
+    clientes = obtener_clientes()
     if len(clientes) == 0:
         mensaje_aviso("No hay clientes registrados.")
     else:
@@ -638,7 +574,7 @@ def buscar_cliente():
     """Busca clientes por nombre o CI/NIT."""
     texto = pedir_texto("Texto a buscar (nombre o CI/NIT): ").lower()
     encontrados = []
-    for c in leer_datos(ARCHIVO_CLIENTES):
+    for c in obtener_clientes():
         if texto in c["nombre"].lower() or texto in c["ci_nit"]:
             encontrados.append(c)
     if len(encontrados) == 0:
@@ -649,15 +585,14 @@ def buscar_cliente():
 
 def actualizar_cliente():
     """Modifica un cliente. Enter deja el valor actual."""
-    c = buscar_por_id(leer_datos(ARCHIVO_CLIENTES),
-                      pedir_entero("Id del cliente: ", 1))
+    c = bd.obtener_cliente(pedir_entero("Id del cliente: ", 1))
     if c is None:
         mensaje_error("Cliente no encontrado.")
         return
     mostrar_tabla_clientes([c])
     print("(Presione Enter para mantener el valor actual)")
     ci_nit = pedir_opcional("CI/NIT", c["ci_nit"])
-    if ci_repetido(leer_datos(ARCHIVO_CLIENTES), ci_nit, c["id"]):
+    if ci_repetido(ci_nit, c["id"]):
         mensaje_error("Error: ese CI/NIT ya pertenece a otro cliente.")
         return
     datos = {
@@ -671,8 +606,7 @@ def actualizar_cliente():
 
 def eliminar_cliente():
     """Elimina un cliente (pide confirmación)."""
-    c = buscar_por_id(leer_datos(ARCHIVO_CLIENTES),
-                      pedir_entero("Id del cliente: ", 1))
+    c = bd.obtener_cliente(pedir_entero("Id del cliente: ", 1))
     if c is None:
         mensaje_error("Cliente no encontrado.")
         return
@@ -694,11 +628,11 @@ def eliminar_cliente():
 def registrar_venta():
     """Pide cliente, producto y cantidad; registra la venta y la factura."""
     id_cliente = pedir_entero("Id del cliente: ", 1)
-    if buscar_por_id(leer_datos(ARCHIVO_CLIENTES), id_cliente) is None:
+    if bd.obtener_cliente(id_cliente) is None:
         mensaje_error("Cliente no encontrado.")
         return
     id_producto = pedir_entero("Id del producto: ", 1)
-    producto = buscar_por_id(leer_datos(ARCHIVO_PRODUCTOS), id_producto)
+    producto = bd.obtener_producto(id_producto)
     if producto is None:
         mensaje_error("Producto no encontrado.")
         return
@@ -712,7 +646,7 @@ def registrar_venta():
     imprimir_caja(lineas_factura(venta))
     mensaje_exito(mensaje)
     # Regla: aviso de stock bajo después de vender
-    producto = buscar_por_id(leer_datos(ARCHIVO_PRODUCTOS), id_producto)
+    producto = bd.obtener_producto(id_producto)
     if stock_bajo(producto):
         mensaje_aviso(f"¡AVISO! Stock bajo de '{producto['nombre']}': "
                       f"quedan {producto['stock']} unidades.")
@@ -720,8 +654,8 @@ def registrar_venta():
 
 def mostrar_tabla_ventas(ventas):
     """Muestra una lista de ventas con nombre de cliente y producto."""
-    clientes = leer_datos(ARCHIVO_CLIENTES)
-    productos = leer_datos(ARCHIVO_PRODUCTOS)
+    clientes = obtener_clientes()
+    productos = obtener_productos()
     filas = []
     for v in ventas:
         cliente = buscar_por_id(clientes, v["id_cliente"])
@@ -735,7 +669,7 @@ def mostrar_tabla_ventas(ventas):
 
 def listar_ventas():
     """Muestra todas las ventas."""
-    ventas = leer_datos(ARCHIVO_VENTAS)
+    ventas = obtener_ventas()
     if len(ventas) == 0:
         mensaje_aviso("No hay ventas registradas.")
     else:
@@ -744,8 +678,7 @@ def listar_ventas():
 
 def ver_detalle_venta():
     """Vuelve a mostrar la factura de una venta según su id."""
-    venta = buscar_por_id(leer_datos(ARCHIVO_VENTAS),
-                          pedir_entero("Id de la venta: ", 1))
+    venta = bd.obtener_venta(pedir_entero("Id de la venta: ", 1))
     if venta is None:
         mensaje_error("Venta no encontrada.")
     else:
