@@ -1,0 +1,21 @@
+# Carpetas de Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Base SQLite (se crea sola al ejecutar el programa)
+*.db
+*.db-journal
+
+# Caché que crea Flet al ejecutar la app
+.flet/
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
