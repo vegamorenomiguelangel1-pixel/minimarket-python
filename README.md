@@ -54,8 +54,10 @@ o también:
 flet run app_flet.py
 ```
 
-Se abre una ventana con un menú a la izquierda (Inicio, Productos,
-Clientes, Ventas, Reportes).
+Se abre una ventana con **AppBar** (nombre del minimarket), menú
+lateral en pantalla ancha y barra inferior si la ventana es angosta.
+Pantallas: Inicio (tarjetas resumen), Productos, Clientes, Ventas
+y Reportes. Los formularios de alta/edición se abren en un diálogo.
 
 ### 3) Flet en el navegador (extra)
 
@@ -64,7 +66,9 @@ flet run --web app_flet.py
 ```
 
 El mismo programa se abre en el navegador (por ejemplo
-http://127.0.0.1:un-puerto). Para detenerlo: `Ctrl + C` en la terminal.
+http://127.0.0.1:un-puerto). En una ventana ancha se ve el menú a la
+izquierda; si se achica el navegador, el menú pasa abajo. Para
+detenerlo: `Ctrl + C` en la terminal.
 
 La primera vez que se ejecuta **cualquier** versión, Python crea
 `minimarket.db` y carga datos de ejemplo de un minimarket boliviano

@@ -61,13 +61,17 @@ Si el archivo está vacío, se insertan datos de ejemplo de un minimarket bolivi
 9. (Extra) Abrir `python app_flet.py` o `flet run --web app_flet.py` y mostrar los mismos datos.
 
 ## 7. Versión Flet (extra)
-**Qué es:** `app_flet.py` es una sola interfaz que corre en **ventana** (`python app_flet.py` / `flet run app_flet.py`) y en **navegador** (`flet run --web app_flet.py`). Tiene un `NavigationRail` (menú izquierdo) con Inicio, Productos, Clientes, Ventas y Reportes.
+**Qué es:** `app_flet.py` es una sola interfaz que corre en **ventana** (`python app_flet.py` / `flet run app_flet.py`) y en **navegador** (`flet run --web app_flet.py`).
 
-**Controles usados:** `TextField` (formularios), `Button` / `TextButton`, `DataTable` (tablas), `Dropdown` (cliente y producto), `SnackBar` (mensajes) y `AlertDialog` (confirmar eliminar y mostrar la factura).
+**Cómo se ve:**
+- `AppBar` verde con el nombre MINIMARKET y “UNICEN · Bolivia”.
+- En pantalla ancha: `NavigationRail` a la izquierda. Si el navegador se achica (menos de 800 px), `ajustar_navegacion()` oculta el rail y muestra un `NavigationBar` abajo.
+- Inicio: cinco tarjetas (productos, clientes, ventas del día, ingresos, stock bajo) armadas con `ResponsiveRow` para que bajen de a una en celular.
+- Productos / Clientes / Ventas: tabla con búsqueda; el alta y la edición van en un `AlertDialog`. Eliminar pide confirmación. Los errores salen en un `SnackBar`.
 
 **Cómo reutiliza el código:** hace `import minimarket as mm` y llama a `mm.agregar_producto()`, `mm.realizar_venta()`, etc. Las reglas están escritas una sola vez. Importar no abre el menú de terminal gracias a `if __name__ == "__main__":`.
 
-**Qué decir:** "La lógica está separada de la interfaz. La terminal y Flet son dos caras del mismo programa y usan el mismo `minimarket.db`. Los controles los guardo en un diccionario `componentes` para que los botones puedan leer el formulario."
+**Qué decir:** "La lógica está separada de la interfaz. La terminal y Flet son dos caras del mismo programa y usan el mismo `minimarket.db`. El color verde lo definí una sola vez (`VERDE`) para que toda la app se vea del mismo minimarket."
 
 ## 8. Preguntas probables del profesor
 - **¿Por qué SQLite y no un servidor?** Porque es un archivo, viene con Python (`sqlite3`) y alcanza para un minimarket pequeño.
